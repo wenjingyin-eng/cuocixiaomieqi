@@ -1,0 +1,11 @@
+:root {
+  --color-ink: #1f1e19;
+  --color-muted: #7b6b60;
+  --color-canvas: #fffcf2;
+  --color-surface: #ffffff;
+  --color-primary: #ff7600;
+  --color-primary-deep: #db6100;
+  --color-success: #08713f;
+  --color-border: #edd2c4;
+  --font-sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
