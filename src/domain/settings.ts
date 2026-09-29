@@ -17,8 +17,12 @@ export function createDefaultSettings(): AppSettings {
 export function validateSettings(settings: AppSettings): string[] {
   const errors: string[] = []
 
-  if (!Number.isInteger(settings.sessionMax) || settings.sessionMax <= 0) {
-    errors.push('sessionMax 必须是正整数')
+  if (
+    !Number.isInteger(settings.sessionMax)
+    || settings.sessionMax <= 0
+    || settings.sessionMax > 100
+  ) {
+    errors.push('sessionMax 必须是 1 到 100 之间的整数')
   }
 
   if (

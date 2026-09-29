@@ -6,7 +6,22 @@ type QueueSpeechInput = {
   text: string
   voice: SpeechSynthesisVoice
   repeat: number
+  gapMs?: number
   onError?: () => void
+  schedule?: (callback: () => void, delayMs: number) => unknown
+}
+
+const speechSequenceByEngine = new WeakMap<object, number>()
+
+function beginSpeechSequence(engine: SpeechEngine): number {
+  const sequence = (speechSequenceByEngine.get(engine) ?? 0) + 1
+  speechSequenceByEngine.set(engine, sequence)
+  engine.cancel()
+  return sequence
+}
+
+export function cancelSpeech(engine: SpeechEngine): void {
+  beginSpeechSequence(engine)
 }
 
 function normalizeLanguage(language: string): string {
@@ -47,13 +62,18 @@ export function queueSpeech({
   text,
   voice,
   repeat,
+  gapMs = 1000,
   onError,
+  schedule = (callback, delayMs) => globalThis.setTimeout(callback, delayMs),
 }: QueueSpeechInput): void {
   if (!text.trim()) throw new Error('朗读文本不能为空')
   if (!Number.isInteger(repeat) || repeat <= 0) throw new Error('播放次数必须是正整数')
+  if (!Number.isFinite(gapMs) || gapMs < 0) throw new Error('播放间隔不能为负数')
 
-  engine.cancel()
-  for (let index = 0; index < repeat; index += 1) {
+  const sequence = beginSpeechSequence(engine)
+
+  const playAt = (index: number): void => {
+    if (speechSequenceByEngine.get(engine) !== sequence) return
     const utterance = createUtterance(text)
     utterance.voice = voice
     utterance.lang = voice.lang || 'zh-CN'
@@ -63,6 +83,12 @@ export function queueSpeech({
     utterance.onerror = (event) => {
       if (event.error !== 'canceled' && event.error !== 'interrupted') onError?.()
     }
+    utterance.onend = () => {
+      if (index + 1 >= repeat || speechSequenceByEngine.get(engine) !== sequence) return
+      schedule(() => playAt(index + 1), gapMs)
+    }
     engine.speak(utterance)
   }
+
+  playAt(0)
 }

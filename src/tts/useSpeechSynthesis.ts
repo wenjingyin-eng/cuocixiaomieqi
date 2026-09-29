@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { getChineseVoices, queueSpeech, resolveVoice } from './speechService'
+import { cancelSpeech, getChineseVoices, queueSpeech, resolveVoice } from './speechService'
 
 const UNAVAILABLE_MESSAGE = '当前设备暂时无法播放语音'
 
@@ -54,7 +54,7 @@ export function useSpeechSynthesis(): SpeechSynthesisState {
     return () => {
       window.clearTimeout(fallbackTimer)
       engine.removeEventListener('voiceschanged', refreshVoices)
-      engine.cancel()
+      cancelSpeech(engine)
     }
   }, [environment])
 
@@ -83,7 +83,9 @@ export function useSpeechSynthesis(): SpeechSynthesisState {
     }
   }, [environment, voices])
 
-  const cancel = useCallback(() => environment.engine?.cancel(), [environment])
+  const cancel = useCallback(() => {
+    if (environment.engine) cancelSpeech(environment.engine)
+  }, [environment])
 
   return { voices, isReady, error, speak, cancel }
 }

@@ -9,7 +9,7 @@
 }
 
 html {
-  background: #e5e5e5;
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-tap-highlight-color: transparent;
@@ -21,6 +21,13 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   margin: 0;
+  background: var(--color-canvas);
+}
+
+#root {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-canvas);
 }
 
 button,
@@ -221,6 +228,14 @@ p {
   opacity: 0.5;
   transform: none;
   box-shadow: 0 4px 0 #c9b7aa;
+}
+
+@media (min-width: 431px) {
+  html,
+  body,
+  #root {
+    background: #e5e5e5;
+  }
 }
 
 .home-tip {

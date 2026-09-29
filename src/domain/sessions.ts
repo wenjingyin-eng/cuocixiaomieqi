@@ -13,6 +13,7 @@ import { applyCorrectReview, applyWrongReview } from './terms'
 type GetTodayQueueInput = {
   terms: TermRecord[]
   sessions: DictationSession[]
+  reviewEvents?: ReviewEvent[]
   today: LocalDate
 }
 
@@ -40,18 +41,27 @@ export type SubmitDictationSessionResult = {
 
 function submittedTermIdsForDate(
   sessions: DictationSession[],
+  reviewEvents: ReviewEvent[],
   date: LocalDate,
 ): Set<string> {
-  const submittedIds = sessions
+  const submittedFromSessions = sessions
     .filter((session) => session.submittedAt !== null)
     .filter((session) => localDateFromTimestamp(session.submittedAt as string) === date)
     .flatMap((session) => session.termIds)
+  const submittedFromEvents = reviewEvents
+    .filter((event) => event.source === 'dictation' && event.date === date)
+    .map((event) => event.termId)
 
-  return new Set(submittedIds)
+  return new Set([...submittedFromSessions, ...submittedFromEvents])
 }
 
-export function getTodayQueue({ terms, sessions, today }: GetTodayQueueInput): TermRecord[] {
-  const submittedToday = submittedTermIdsForDate(sessions, today)
+export function getTodayQueue({
+  terms,
+  sessions,
+  reviewEvents = [],
+  today,
+}: GetTodayQueueInput): TermRecord[] {
+  const submittedToday = submittedTermIdsForDate(sessions, reviewEvents, today)
 
   return terms
     .filter((term) => (

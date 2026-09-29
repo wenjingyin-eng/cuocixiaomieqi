@@ -7,8 +7,39 @@ import {
 } from '../backup/backupService'
 import { Button } from '../components/Button'
 import { SurfaceCard } from '../components/SurfaceCard'
-import { todayLocalDate, validateSettings } from '../domain'
+import { validateSettings } from '../domain'
+import { getToday } from '../utils/dateClock'
 import type { AppSettings, ReviewIntervals } from '../types/domain'
+
+type SettingsFormState = {
+  sessionMax: string
+  eliminationTarget: string
+  reviewIntervals: [string, string, string, string, string]
+}
+
+function createSettingsForm(settings: AppSettings): SettingsFormState {
+  return {
+    sessionMax: String(settings.sessionMax),
+    eliminationTarget: String(settings.eliminationTarget),
+    reviewIntervals: settings.reviewIntervals.map(String) as SettingsFormState['reviewIntervals'],
+  }
+}
+
+function buildSettings(form: SettingsFormState, preferredVoiceId?: string): AppSettings {
+  return {
+    sessionMax: Number(form.sessionMax),
+    eliminationTarget: Number(form.eliminationTarget),
+    reviewIntervals: form.reviewIntervals.map(Number) as ReviewIntervals,
+    ...(preferredVoiceId ? { preferredVoiceId } : {}),
+  }
+}
+
+function settingsAreEqual(left: AppSettings, right: AppSettings): boolean {
+  return left.sessionMax === right.sessionMax
+    && left.eliminationTarget === right.eliminationTarget
+    && left.preferredVoiceId === right.preferredVoiceId
+    && left.reviewIntervals.every((interval, index) => interval === right.reviewIntervals[index])
+}
 
 export function SettingsPage() {
   const {
@@ -20,23 +51,20 @@ export function SettingsPage() {
     restoreBackup,
   } = useAppState()
   const importInputRef = useRef<HTMLInputElement>(null)
-  const [draft, setDraft] = useState<AppSettings>(() => ({
-    ...settings,
-    reviewIntervals: [...settings.reviewIntervals],
-  }))
+  const [form, setForm] = useState<SettingsFormState>(() => createSettingsForm(settings))
   const [message, setMessage] = useState('')
+  const draft = buildSettings(form, settings.preferredVoiceId)
+  const hasChanges = !settingsAreEqual(draft, settings)
+  const activeIntervalCount = Number.isInteger(draft.eliminationTarget)
+    && draft.eliminationTarget >= 1
+    && draft.eliminationTarget <= 5
+    ? draft.eliminationTarget
+    : 0
 
-  function updateInterval(index: number, value: number): void {
-    setDraft((current) => {
-      const reviewIntervals = [...current.reviewIntervals] as ReviewIntervals
+  function updateInterval(index: number, value: string): void {
+    setForm((current) => {
+      const reviewIntervals = [...current.reviewIntervals] as SettingsFormState['reviewIntervals']
       reviewIntervals[index] = value
-
-      for (let nextIndex = index + 1; nextIndex < reviewIntervals.length; nextIndex += 1) {
-        if (reviewIntervals[nextIndex] <= reviewIntervals[nextIndex - 1]) {
-          reviewIntervals[nextIndex] = reviewIntervals[nextIndex - 1] + 1
-        }
-      }
-
       return { ...current, reviewIntervals }
     })
     setMessage('')
@@ -49,6 +77,7 @@ export function SettingsPage() {
       return
     }
     saveSettings(draft)
+    setForm(createSettingsForm(draft))
     setMessage('设置已保存，将从下一次相关计算开始生效。')
   }
 
@@ -62,7 +91,7 @@ export function SettingsPage() {
   function handleExport(): void {
     try {
       const payload = createBackup()
-      downloadBackupFile(payload, createBackupFileName(todayLocalDate()))
+      downloadBackupFile(payload, createBackupFileName(getToday()))
       setMessage('备份已导出。')
     } catch {
       setMessage('导出备份失败，请稍后重试。')
@@ -79,7 +108,7 @@ export function SettingsPage() {
       const confirmed = window.confirm('导入会覆盖当前所有学习数据，是否继续？')
       if (!confirmed) return
       restoreBackup(payload)
-      setDraft({ ...payload.settings, reviewIntervals: [...payload.settings.reviewIntervals] })
+      setForm(createSettingsForm(payload.settings))
       setMessage('备份导入成功，当前学习数据已恢复。')
     } catch (cause) {
       setMessage(cause instanceof Error ? cause.message : '无法识别这个备份文件')
@@ -109,9 +138,10 @@ export function SettingsPage() {
               <input
                 type="number"
                 min="1"
-                value={draft.sessionMax}
+                max="100"
+                value={form.sessionMax}
                 onChange={(event) => {
-                  setDraft((current) => ({ ...current, sessionMax: Number(event.target.value) }))
+                  setForm((current) => ({ ...current, sessionMax: event.target.value }))
                   setMessage('')
                 }}
                 aria-label="每次听写最多词数"
@@ -126,10 +156,9 @@ export function SettingsPage() {
                 type="number"
                 min="1"
                 max="5"
-                value={draft.eliminationTarget}
+                value={form.eliminationTarget}
                 onChange={(event) => {
-                  const nextTarget = Math.max(1, Math.min(5, Number(event.target.value)))
-                  setDraft((current) => ({ ...current, eliminationTarget: nextTarget }))
+                  setForm((current) => ({ ...current, eliminationTarget: event.target.value }))
                   setMessage('')
                 }}
                 aria-label="连续答对次数"
@@ -144,24 +173,24 @@ export function SettingsPage() {
         <h2 id="interval-title">复习间隔（天）</h2>
         <SurfaceCard className="interval-card">
           <div className="interval-options">
-            {draft.reviewIntervals.map((interval, index) => (
+            {form.reviewIntervals.map((interval, index) => (
               <input
                 type="number"
                 min="1"
                 key={index}
                 value={interval}
-                disabled={index >= draft.eliminationTarget}
+                disabled={index >= activeIntervalCount}
                 aria-label={`第 ${index + 1} 个复习间隔`}
-                onChange={(event) => updateInterval(index, Number(event.target.value))}
+                onChange={(event) => updateInterval(index, event.target.value)}
               />
             ))}
           </div>
-          <p>当前使用前 {draft.eliminationTarget} 个间隔；启用项需为严格递增的正整数</p>
+          <p>当前使用前 {activeIntervalCount || '—'} 个间隔；启用项需为严格递增的正整数</p>
         </SurfaceCard>
       </section>
 
       {message && <p className="form-message settings-message" role="status">{message}</p>}
-      <Button className="save-settings" fullWidth onClick={handleSave}>保存设置</Button>
+      <Button className="save-settings" fullWidth disabled={!hasChanges} onClick={handleSave}>保存设置</Button>
 
       <section className="settings-section data-section" aria-labelledby="data-title">
         <h2 id="data-title">数据</h2>
@@ -183,9 +212,9 @@ export function SettingsPage() {
         <h2 id="danger-title">危险操作</h2>
         <button className="danger-action" type="button" onClick={handleClear}>
           <strong>清空全部数据</strong>
-          <span>需要两次确认</span>
         </button>
       </section>
+
     </div>
   )
 }

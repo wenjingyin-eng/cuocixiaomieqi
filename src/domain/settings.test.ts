@@ -28,6 +28,15 @@ describe('设置校验', () => {
     expect(errors).toHaveLength(2)
   })
 
+  it('拒绝超过 100 个词的单次听写上限', () => {
+    const errors = validateSettings({
+      sessionMax: 101,
+      eliminationTarget: 3,
+      reviewIntervals: [1, 3, 7, 15, 30],
+    })
+    expect(errors).toContain('sessionMax 必须是 1 到 100 之间的整数')
+  })
+
   it('拒绝非严格递增的复习间隔', () => {
     const errors = validateSettings({
       sessionMax: 20,

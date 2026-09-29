@@ -12,6 +12,8 @@ export function AddWordsPage() {
   const [markedByWord, setMarkedByWord] = useState<Record<string, number[]>>({})
   const [message, setMessage] = useState('')
   const words = useMemo(() => parseTermInput(input), [input])
+  const canSubmit = words.length > 0
+    && words.every((word) => (markedByWord[word]?.length ?? 0) > 0)
 
   function toggleCharacter(word: string, index: number): void {
     setMessage('')
@@ -99,6 +101,7 @@ export function AddWordsPage() {
           fullWidth
           icon={<Archive size={21} strokeWidth={2.4} aria-hidden="true" />}
           iconPosition="start"
+          disabled={!canSubmit}
           onClick={handleSubmit}
         >
           加入错词库

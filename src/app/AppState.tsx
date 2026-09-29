@@ -9,11 +9,11 @@ import {
 } from 'react'
 import {
   createDictationSession,
+  deleteTermData,
   initializeNewTerm,
   reactivateTerm,
   recordManualMistake,
   submitDictationSession,
-  todayLocalDate,
 } from '../domain'
 import { createBackupPayload } from '../backup/backupService'
 import type {
@@ -21,6 +21,7 @@ import type {
   BackupPayload,
   DictationResult,
   DictationSession,
+  LocalDate,
   ReviewEvent,
   TermRecord,
 } from '../types/domain'
@@ -31,6 +32,10 @@ import {
   migrateAppData,
   saveAppData,
 } from '../storage/storageService'
+import {
+  getRealTimestamp,
+  getToday,
+} from '../utils/dateClock'
 
 export type MistakeDraft = {
   text: string
@@ -45,6 +50,7 @@ type AppStateContextValue = {
   currentSession: DictationSession | null
   currentDictationIndex: number
   storageError: string | null
+  today: LocalDate
   createBackup: () => BackupPayload
   restoreBackup: (payload: BackupPayload) => void
   startSession: () => DictationSession | null
@@ -52,6 +58,7 @@ type AppStateContextValue = {
   abandonCurrentSession: () => void
   addMistakes: (drafts: MistakeDraft[]) => void
   reactivate: (termId: string) => void
+  deleteTerm: (termId: string) => void
   submitCurrentSession: (results: DictationResult[]) => void
   saveSettings: (settings: AppSettings) => void
   clearLearningData: () => void
@@ -68,7 +75,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [{ storage, result: initialLoad }] = useState(() => {
     try {
       const browserStorage = getBrowserStorage()
-      return { storage: browserStorage, result: loadAppData(browserStorage) }
+      return {
+        storage: browserStorage,
+        result: loadAppData(browserStorage),
+      }
     } catch (cause) {
       const error = cause instanceof Error ? cause : new Error('无法访问本地存储')
       return {
@@ -87,6 +97,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<DictationSession[]>(() => initialLoad.data.sessions)
   const [currentSession, setCurrentSession] = useState<DictationSession | null>(null)
   const [currentDictationIndex, setCurrentDictationIndex] = useState(0)
+  const today = getToday()
 
   useEffect(() => {
     if (!persistenceAllowedRef.current) return
@@ -107,6 +118,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     currentSession,
     currentDictationIndex,
     storageError,
+    today,
     createBackup() {
       return createBackupPayload({ settings, terms, reviewEvents, sessions })
     },
@@ -137,13 +149,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setCurrentDictationIndex(0)
     },
     startSession() {
-      const today = todayLocalDate()
       const session = createDictationSession({
         id: createId('session'),
-        startedAt: new Date().toISOString(),
+        startedAt: getRealTimestamp(),
         today,
         terms,
         sessions,
+        reviewEvents,
         settings,
       })
       setCurrentSession(session)
@@ -156,8 +168,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setCurrentDictationIndex(0)
     },
     addMistakes(drafts) {
-      const today = todayLocalDate()
-      const timestamp = new Date().toISOString()
+      const timestamp = getRealTimestamp()
       const nextTerms = [...terms]
       const newEvents: ReviewEvent[] = []
 
@@ -192,11 +203,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setReviewEvents((events) => [...events, ...newEvents])
     },
     reactivate(termId) {
-      const today = todayLocalDate()
-      const timestamp = new Date().toISOString()
+      const timestamp = getRealTimestamp()
       setTerms((current) => current.map((term) => (
         term.id === termId ? reactivateTerm(term, { date: today, timestamp }, settings) : term
       )))
+    },
+    deleteTerm(termId) {
+      const next = deleteTermData({ termId, terms, reviewEvents, sessions })
+      setTerms(next.terms)
+      setReviewEvents(next.reviewEvents)
+      setSessions(next.sessions)
     },
     submitCurrentSession(results) {
       if (!currentSession) throw new Error('当前没有可提交的 Session')
@@ -205,8 +221,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         session: currentSession,
         terms,
         results,
-        date: todayLocalDate(),
-        submittedAt: new Date().toISOString(),
+        date: today,
+        submittedAt: getRealTimestamp(),
         settings,
         createReviewEventId: () => createId('event'),
       })
@@ -249,6 +265,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     storage,
     storageError,
     terms,
+    today,
   ])
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>

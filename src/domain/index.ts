@@ -1,5 +1,6 @@
 export * from './constants'
 export * from './entry'
+export * from './library'
 export * from './scheduling'
 export * from './sessions'
 export * from './settings'

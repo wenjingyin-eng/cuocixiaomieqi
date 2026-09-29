@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import {
   useBeforeUnload,
   useBlocker,
@@ -20,6 +20,7 @@ export function SessionNavigationGuard() {
     )
   ), [hasActiveSession])
   const blocker = useBlocker(shouldBlock)
+  const isConfirmingRef = useRef(false)
 
   useBeforeUnload(useCallback((event) => {
     if (!hasActiveSession) return
@@ -28,10 +29,16 @@ export function SessionNavigationGuard() {
   }, [hasActiveSession]))
 
   useEffect(() => {
-    if (blocker.state !== 'blocked') return
+    if (blocker.state !== 'blocked') {
+      isConfirmingRef.current = false
+      return
+    }
+    if (isConfirmingRef.current) return
+    isConfirmingRef.current = true
+
     if (window.confirm(EXIT_MESSAGE)) {
-      abandonCurrentSession()
       blocker.proceed()
+      abandonCurrentSession()
     } else {
       blocker.reset()
     }

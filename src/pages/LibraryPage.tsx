@@ -22,7 +22,7 @@ function sortTerms(left: TermRecord, right: TermRecord): number {
 }
 
 export function LibraryPage() {
-  const { terms, reactivate } = useAppState()
+  const { terms, reactivate, deleteTerm } = useAppState()
   const [activeTab, setActiveTab] = useState<LibraryTab>(tabs[0])
   const frequentWords = useMemo(() => [...terms]
     .filter((term) => term.wholeTermWrongCount > 0)
@@ -57,10 +57,16 @@ export function LibraryPage() {
     .sort(sortTerms), [activeTab, terms])
   const listTitle = activeTab === '全部' ? '全部错词' : activeTab
 
+  function handleDelete(term: TermRecord): void {
+    if (!window.confirm(`确定要删除“${term.text}”吗？`)) return
+    if (!window.confirm(`请再次确认：将同时删除“${term.text}”的复习记录，且无法撤销。`)) return
+    deleteTerm(term.id)
+  }
+
   return (
     <div className="primary-page library-page page-enter">
       <header className="primary-title">
-        <h1>错词库</h1>
+        <h1>词库</h1>
         <p><span className="section-dot section-dot--orange" /><strong>{terms.length}</strong> 个错词</p>
       </header>
 
@@ -124,11 +130,14 @@ export function LibraryPage() {
             <article className={term.status === 'eliminated' ? 'is-mastered' : ''} key={term.id}>
               <strong>{term.text}</strong>
               <span>{term.status === 'eliminated' ? '已消灭' : `连对 ${term.consecutiveCorrect} 次`}</span>
-              {term.status === 'eliminated' ? (
-                <button className="text-action" type="button" onClick={() => reactivate(term.id)}>重新入库</button>
-              ) : (
-                <span>{formatDate(term.nextReviewDate)}</span>
-              )}
+              <span className="term-row-meta">
+                {term.status === 'eliminated' ? (
+                  <button className="text-action" type="button" onClick={() => reactivate(term.id)}>重新入库</button>
+                ) : (
+                  <span>{formatDate(term.nextReviewDate)}</span>
+                )}
+                <button className="text-action" type="button" onClick={() => handleDelete(term)}>删除</button>
+              </span>
             </article>
           ))}
           {visibleTerms.length === 0 && (

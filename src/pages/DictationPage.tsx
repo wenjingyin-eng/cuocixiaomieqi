@@ -1,4 +1,4 @@
-import { Play, RotateCcw } from 'lucide-react'
+import { Play } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
@@ -53,9 +53,9 @@ export function DictationPage() {
     navigate('/review')
   }
 
-  function handleReplay(): void {
+  function handlePlay(): void {
     if (!currentTerm || !selectedVoice) return
-    speak(currentTerm.text, 1, selectedVoice.voiceURI)
+    speak(currentTerm.text, 3, selectedVoice.voiceURI)
   }
 
   if (!currentSession) {
@@ -85,26 +85,15 @@ export function DictationPage() {
         {speechError && <p className="dictation-audio-error" role="status">{speechError}</p>}
 
         <SurfaceCard className="listen-card">
-          <button
-            className="replay-button"
-            type="button"
-            aria-label="再听一次"
-            disabled={!selectedVoice}
-            onClick={handleReplay}
-          >
-            <RotateCcw size={21} strokeWidth={2.1} />
-          </button>
           <div className="listen-orbit">
-            <span className="listen-hint">听清楚后写在纸上</span>
             <button
               className="play-button"
               type="button"
-              aria-label="再听一次"
+              aria-label="播放当前词语三遍"
               disabled={!selectedVoice}
-              onClick={handleReplay}
+              onClick={handlePlay}
             >
               <Play size={36} fill="currentColor" strokeWidth={0} aria-hidden="true" />
-              <span>再听一次</span>
             </button>
           </div>
         </SurfaceCard>

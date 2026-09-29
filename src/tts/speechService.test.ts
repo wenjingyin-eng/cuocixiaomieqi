@@ -33,7 +33,7 @@ describe('speechService', () => {
     expect(resolveVoice([], 'missing')).toBeNull()
   })
 
-  it('自动播放时按指定次数创建并排队语音', () => {
+  it('连续播放时在每遍之间留出 1 秒间隔', () => {
     const spoken: SpeechSynthesisUtterance[] = []
     const engine = {
       cancel: vi.fn(),
@@ -41,10 +41,26 @@ describe('speechService', () => {
     }
     const createUtterance = (text: string) => ({ text }) as SpeechSynthesisUtterance
     const selectedVoice = voice('mandarin', 'zh-CN')
+    const scheduled: Array<{ callback: () => void; delayMs: number }> = []
 
-    queueSpeech({ engine, createUtterance, text: '旅行', voice: selectedVoice, repeat: 3 })
+    queueSpeech({
+      engine,
+      createUtterance,
+      text: '旅行',
+      voice: selectedVoice,
+      repeat: 3,
+      schedule: (callback, delayMs) => scheduled.push({ callback, delayMs }),
+    })
 
     expect(engine.cancel).toHaveBeenCalledOnce()
+    expect(engine.speak).toHaveBeenCalledOnce()
+    spoken[0].onend?.({} as SpeechSynthesisEvent)
+    expect(scheduled[0].delayMs).toBe(1000)
+    scheduled[0].callback()
+    expect(engine.speak).toHaveBeenCalledTimes(2)
+    spoken[1].onend?.({} as SpeechSynthesisEvent)
+    expect(scheduled[1].delayMs).toBe(1000)
+    scheduled[1].callback()
     expect(engine.speak).toHaveBeenCalledTimes(3)
     expect(spoken.every((utterance) => utterance.text === '旅行')).toBe(true)
     expect(spoken.every((utterance) => utterance.voice === selectedVoice)).toBe(true)

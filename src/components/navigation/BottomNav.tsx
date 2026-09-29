@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 
 const items = [
   { to: '/', label: '听写', icon: Headphones },
-  { to: '/library', label: '错词库', icon: BookOpen },
+  { to: '/library', label: '词库', icon: BookOpen },
   { to: '/settings', label: '设置', icon: Settings },
 ]
 

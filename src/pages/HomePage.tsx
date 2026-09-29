@@ -1,12 +1,12 @@
 import { Button } from '../components/Button'
 import { useNavigate } from 'react-router-dom'
 import { useAppState } from '../app/AppState'
-import { getTodayQueue, todayLocalDate } from '../domain'
+import { getTodayQueue } from '../domain'
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { terms, sessions, startSession } = useAppState()
-  const reviewCount = getTodayQueue({ terms, sessions, today: todayLocalDate() }).length
+  const { terms, reviewEvents, sessions, startSession, today } = useAppState()
+  const reviewCount = getTodayQueue({ terms, reviewEvents, sessions, today }).length
   const masteredCount = terms.filter((term) => term.status === 'eliminated').length
   const totalCount = terms.length
   const progress = totalCount === 0 ? 0 : (masteredCount / totalCount) * 100
