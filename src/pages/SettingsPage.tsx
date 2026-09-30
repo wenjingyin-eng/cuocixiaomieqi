@@ -144,9 +144,9 @@ export function SettingsPage() {
                   setForm((current) => ({ ...current, sessionMax: event.target.value }))
                   setMessage('')
                 }}
-                aria-label="每次听写最多词数"
+                aria-label="每次听写最多词语数"
               />
-              <span>个词</span>
+              <span>个词语</span>
             </span>
           </label>
           <label>

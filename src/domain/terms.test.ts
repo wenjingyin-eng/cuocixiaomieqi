@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { createDefaultSettings } from './settings'
-import { applyCorrectReview, applyWrongReview, initializeNewTerm } from './terms'
+import {
+  applyCorrectReview,
+  applyWrongReview,
+  initializeNewTerm,
+  recordManualMistake,
+} from './terms'
 
 const settings = createDefaultSettings()
 
@@ -37,14 +42,23 @@ describe('新词初始化', () => {
     expect(event).toMatchObject({ source: 'initial_entry', result: 'wrong', wrongChars: ['旅'] })
   })
 
-  it('没有标记错字时不能创建新词', () => {
-    expect(() => initializeNewTerm({
+  it('没有标记错字时仍可创建新词，只累计词语错误', () => {
+    const { term, event } = initializeNewTerm({
       termId: 'term-1',
       eventId: 'event-1',
       text: '旅行',
       wrongCharPositions: [],
       date: '2026-09-28',
-    }, settings)).toThrow('至少标记一个错字')
+    }, settings)
+
+    expect(term.wholeTermWrongCount).toBe(1)
+    expect(term.wrongChars).toEqual({})
+    expect(event).toMatchObject({
+      source: 'initial_entry',
+      result: 'wrong',
+      wrongCharPositions: [],
+      wrongChars: [],
+    })
   })
 })
 
@@ -97,6 +111,43 @@ describe('正确结果推进', () => {
 })
 
 describe('错误结果重置', () => {
+  it('听写核对标错时仍必须选择具体错字', () => {
+    expect(() => applyWrongReview(createTravelTerm(), {
+      eventId: 'wrong-without-character',
+      date: '2026-09-02',
+      wrongCharPositions: [],
+    }, settings)).toThrow('至少标记一个错字')
+  })
+
+  it('手动重复录入可不选错字，只增加词语错误并重置 cycle', () => {
+    const initial = createTravelTerm()
+    const afterCorrect = applyCorrectReview(initial, {
+      eventId: 'correct-before-reentry',
+      date: '2026-09-02',
+    }, settings).term
+
+    const { term, event } = recordManualMistake(afterCorrect, {
+      eventId: 'manual-without-character',
+      date: '2026-09-03',
+      wrongCharPositions: [],
+    }, settings)
+
+    expect(term).toMatchObject({
+      wholeTermWrongCount: 2,
+      consecutiveCorrect: 0,
+      reviewStage: 0,
+      cycleStartDate: '2026-09-03',
+      nextReviewDate: '2026-09-04',
+    })
+    expect(term.wrongChars).toEqual({ 旅: { count: 1, positions: [0] } })
+    expect(event).toMatchObject({
+      source: 'manual_reentry',
+      result: 'wrong',
+      wrongCharPositions: [],
+      wrongChars: [],
+    })
+  })
+
   it('Stage 2 答错后重置 cycle 并安排明天复习', () => {
     const initial = createTravelTerm()
     const stage1 = applyCorrectReview(initial, {

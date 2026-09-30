@@ -45,11 +45,15 @@ function normalizeText(text: string): string {
   return normalized
 }
 
-function normalizeWrongPositions(text: string, positions: number[]): number[] {
+function normalizeWrongPositions(
+  text: string,
+  positions: number[],
+  selectionRequired = true,
+): number[] {
   const characters = [...text]
   const normalized = [...new Set(positions)].sort((left, right) => left - right)
 
-  if (normalized.length === 0) {
+  if (selectionRequired && normalized.length === 0) {
     throw new Error('错误词必须至少标记一个错字')
   }
 
@@ -92,6 +96,7 @@ function buildReviewEvent(
   term: TermRecord,
   date: LocalDate,
   source: ReviewSource,
+  result: ReviewEvent['result'],
   wrongCharPositions: number[],
 ): ReviewEvent {
   const characters = [...term.text]
@@ -100,7 +105,7 @@ function buildReviewEvent(
     termId: term.id,
     date,
     source,
-    result: wrongCharPositions.length > 0 ? 'wrong' : 'correct',
+    result,
     wrongCharPositions: [...wrongCharPositions],
     wrongChars: wrongCharPositions.map((position) => characters[position]),
   }
@@ -118,7 +123,7 @@ export function initializeNewTerm(
 ): TermMutationResult {
   assertValidSettings(settings)
   const text = normalizeText(input.text)
-  const wrongCharPositions = normalizeWrongPositions(text, input.wrongCharPositions)
+  const wrongCharPositions = normalizeWrongPositions(text, input.wrongCharPositions, false)
   const timestamp = input.timestamp ?? input.date
 
   const term: TermRecord = {
@@ -142,7 +147,14 @@ export function initializeNewTerm(
 
   return {
     term,
-    event: buildReviewEvent(input.eventId, term, input.date, 'initial_entry', wrongCharPositions),
+    event: buildReviewEvent(
+      input.eventId,
+      term,
+      input.date,
+      'initial_entry',
+      'wrong',
+      wrongCharPositions,
+    ),
   }
 }
 
@@ -182,6 +194,7 @@ export function applyCorrectReview(
       updatedTerm,
       input.date,
       input.source ?? 'dictation',
+      'correct',
       [],
     ),
   }
@@ -192,10 +205,23 @@ export function applyWrongReview(
   input: ApplyWrongReviewInput,
   settings: AppSettings,
 ): TermMutationResult {
+  return applyMistake(term, input, settings, true)
+}
+
+function applyMistake(
+  term: TermRecord,
+  input: ApplyWrongReviewInput,
+  settings: AppSettings,
+  selectionRequired: boolean,
+): TermMutationResult {
   assertValidSettings(settings)
   assertActiveTerm(term)
 
-  const wrongCharPositions = normalizeWrongPositions(term.text, input.wrongCharPositions)
+  const wrongCharPositions = normalizeWrongPositions(
+    term.text,
+    input.wrongCharPositions,
+    selectionRequired,
+  )
   const timestamp = input.timestamp ?? input.date
 
   const updatedTerm: TermRecord = {
@@ -222,6 +248,7 @@ export function applyWrongReview(
       updatedTerm,
       input.date,
       input.source ?? 'dictation',
+      'wrong',
       wrongCharPositions,
     ),
   }
@@ -233,14 +260,15 @@ export function recordManualMistake(
   settings: AppSettings,
 ): TermMutationResult {
   if (term.status === 'active') {
-    return applyWrongReview(term, { ...input, source: 'manual_reentry' }, settings)
+    return applyMistake(term, { ...input, source: 'manual_reentry' }, settings, false)
   }
 
   const reactivated = reactivateTerm(term, input, settings)
-  return applyWrongReview(
+  return applyMistake(
     { ...reactivated, wholeTermWrongCount: term.wholeTermWrongCount },
     { ...input, source: 'manual_reentry' },
     settings,
+    false,
   )
 }
 

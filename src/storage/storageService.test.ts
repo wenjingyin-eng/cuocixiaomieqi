@@ -67,6 +67,31 @@ describe('storageService', () => {
     expect(loaded.data.terms[0].text).toBe('旅行')
   })
 
+  it('兼容未标记具体错字的手动错词记录', () => {
+    const empty = createEmptyAppData('2026-09-28T08:00:00+08:00')
+    const term = { ...termFixture(), wrongChars: {} }
+    const migrated = migrateAppData({
+      ...empty,
+      terms: [term],
+      reviewEvents: [{
+        id: 'event-1',
+        termId: term.id,
+        date: '2026-09-28',
+        source: 'initial_entry',
+        result: 'wrong',
+        wrongCharPositions: [],
+        wrongChars: [],
+      }],
+    })
+
+    expect(migrated.terms[0].wrongChars).toEqual({})
+    expect(migrated.reviewEvents[0]).toMatchObject({
+      result: 'wrong',
+      wrongCharPositions: [],
+      wrongChars: [],
+    })
+  })
+
   it('格式损坏时返回错误且不覆盖原始内容', () => {
     const storage = new MemoryStorage()
     storage.setItem(APP_STORAGE_KEY, '{broken json')

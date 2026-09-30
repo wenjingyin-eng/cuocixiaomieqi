@@ -13,7 +13,6 @@ export function AddWordsPage() {
   const [message, setMessage] = useState('')
   const words = useMemo(() => parseTermInput(input), [input])
   const canSubmit = words.length > 0
-    && words.every((word) => (markedByWord[word]?.length ?? 0) > 0)
 
   function toggleCharacter(word: string, index: number): void {
     setMessage('')
@@ -33,12 +32,6 @@ export function AddWordsPage() {
       return
     }
 
-    const incompleteWord = words.find((word) => (markedByWord[word]?.length ?? 0) === 0)
-    if (incompleteWord) {
-      setMessage(`请标记“${incompleteWord}”中写错的字。`)
-      return
-    }
-
     const eliminatedWords = words.filter((word) => (
       terms.some((term) => term.text === word && term.status === 'eliminated')
     ))
@@ -49,7 +42,7 @@ export function AddWordsPage() {
 
     addMistakes(words.map((word) => ({
       text: word,
-      wrongCharPositions: markedByWord[word],
+      wrongCharPositions: markedByWord[word] ?? [],
     })))
     setInput('')
     setMarkedByWord({})
@@ -62,7 +55,7 @@ export function AddWordsPage() {
       <div className="secondary-content add-page">
         <header className="secondary-title">
           <h1>录入错词</h1>
-          <p>可用逗号或分号分隔多个词语</p>
+          <p>可用空格、换行或标点分隔多个词语</p>
         </header>
 
         <textarea
@@ -79,7 +72,7 @@ export function AddWordsPage() {
         <section className="recognized-section" aria-labelledby="recognized-title">
           <div className="recognized-heading">
             <h2 id="recognized-title"><span className="section-dot section-dot--blue" />已识别 {words.length} 个词</h2>
-            <p>点击字块标记本次写错的字</p>
+            <p>点击字块可标记具体错字（选填）</p>
           </div>
           <div className="word-row-list">
             {words.map((word) => (

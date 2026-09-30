@@ -56,6 +56,7 @@ export function LibraryPage() {
     ))
     .sort(sortTerms), [activeTab, terms])
   const listTitle = activeTab === '全部' ? '全部错词' : activeTab
+  const showInsights = activeTab === '全部' && terms.length > 0
 
   function handleDelete(term: TermRecord): void {
     if (!window.confirm(`确定要删除“${term.text}”吗？`)) return
@@ -85,68 +86,70 @@ export function LibraryPage() {
         ))}
       </div>
 
-      {activeTab === '全部' && terms.length > 0 && (
-        <>
-          <SurfaceCard className="insight-card frequent-word-card">
-            <h2><span className="section-dot section-dot--orange" />高频错词</h2>
-            <div className="insight-list">
-              {frequentWords.map((term, index) => (
-                <div className="rank-row" key={term.id}>
-                  <span className={`rank rank--${index + 1}`}>{index + 1}</span>
-                  <span>{term.text}</span>
-                  <strong>{term.wholeTermWrongCount} 次</strong>
-                </div>
-              ))}
-              {frequentWords.length === 0 && <p className="insight-empty">暂无错误记录</p>}
-            </div>
-          </SurfaceCard>
+      <div className={`library-layout${showInsights ? ' has-insights' : ''}`}>
+        {showInsights && (
+          <aside className="library-insights" aria-label="错词统计">
+            <SurfaceCard className="insight-card frequent-word-card">
+              <h2><span className="section-dot section-dot--orange" />高频错词</h2>
+              <div className="insight-list">
+                {frequentWords.map((term, index) => (
+                  <div className="rank-row" key={term.id}>
+                    <span className={`rank rank--${index + 1}`}>{index + 1}</span>
+                    <span>{term.text}</span>
+                    <strong>{term.wholeTermWrongCount} 次</strong>
+                  </div>
+                ))}
+                {frequentWords.length === 0 && <p className="insight-empty">暂无错误记录</p>}
+              </div>
+            </SurfaceCard>
 
-          <SurfaceCard className="insight-card frequent-character-card">
-            <h2><span className="section-dot section-dot--blue" />高频错字</h2>
-            <div className="insight-list">
-              {frequentCharacters.map(([character, stat]) => (
-                <div className="character-stat-row" key={character}>
-                  <strong>{character}</strong>
-                  <span>衍生词：{[...stat.terms].join('、')}</span>
-                  <b>{stat.count} 次</b>
-                </div>
-              ))}
-              {frequentCharacters.length === 0 && <p className="insight-empty">暂无错字记录</p>}
-            </div>
-          </SurfaceCard>
-        </>
-      )}
+            <SurfaceCard className="insight-card frequent-character-card">
+              <h2><span className="section-dot section-dot--blue" />高频错字</h2>
+              <div className="insight-list">
+                {frequentCharacters.map(([character, stat]) => (
+                  <div className="character-stat-row" key={character}>
+                    <strong>{character}</strong>
+                    <span>衍生词：{[...stat.terms].join('、')}</span>
+                    <b>{stat.count} 次</b>
+                  </div>
+                ))}
+                {frequentCharacters.length === 0 && <p className="insight-empty">暂无错字记录</p>}
+              </div>
+            </SurfaceCard>
+          </aside>
+        )}
 
-      <section
-        className={`all-words${activeTab === '全部' ? '' : ' all-words--filtered'}`}
-        aria-labelledby="all-words-title"
-      >
-        <div className="all-words__heading">
-          <h2 id="all-words-title"><span className="section-dot section-dot--green" />{listTitle}</h2>
-          <span>按复习时间排序</span>
-        </div>
-        <div className="all-words__list">
-          {visibleTerms.map((term) => (
-            <article className={term.status === 'eliminated' ? 'is-mastered' : ''} key={term.id}>
-              <strong>{term.text}</strong>
-              <span>{term.status === 'eliminated' ? '已消灭' : `连对 ${term.consecutiveCorrect} 次`}</span>
-              <span className="term-row-meta">
-                {term.status === 'eliminated' ? (
-                  <button className="text-action" type="button" onClick={() => reactivate(term.id)}>重新入库</button>
-                ) : (
-                  <span>{formatDate(term.nextReviewDate)}</span>
-                )}
-                <button className="text-action" type="button" onClick={() => handleDelete(term)}>删除</button>
-              </span>
-            </article>
-          ))}
-          {visibleTerms.length === 0 && (
-            <p className="page-empty">
-              {terms.length === 0 ? <>还没有错词<br />先录入一个最近写错的词吧</> : '当前筛选下没有错词'}
-            </p>
-          )}
-        </div>
-      </section>
+        <section
+          className={`all-words${activeTab === '全部' ? '' : ' all-words--filtered'}`}
+          aria-labelledby="all-words-title"
+        >
+          <div className="all-words__heading">
+            <h2 id="all-words-title"><span className="section-dot section-dot--green" />{listTitle}</h2>
+            <span>按复习时间排序</span>
+          </div>
+          <div className="all-words__list">
+            {visibleTerms.map((term) => (
+              <article className={term.status === 'eliminated' ? 'is-mastered' : ''} key={term.id}>
+                <strong>{term.text}</strong>
+                <span>{term.status === 'eliminated' ? '已消灭' : `连对 ${term.consecutiveCorrect} 次`}</span>
+                <span className="term-row-meta">
+                  {term.status === 'eliminated' ? (
+                    <button className="text-action" type="button" onClick={() => reactivate(term.id)}>重新入库</button>
+                  ) : (
+                    <span>{formatDate(term.nextReviewDate)}</span>
+                  )}
+                  <button className="text-action" type="button" onClick={() => handleDelete(term)}>删除</button>
+                </span>
+              </article>
+            ))}
+            {visibleTerms.length === 0 && (
+              <p className="page-empty">
+                {terms.length === 0 ? <>还没有错词<br />先录入一个最近写错的词吧</> : '当前筛选下没有错词'}
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
   )
 }

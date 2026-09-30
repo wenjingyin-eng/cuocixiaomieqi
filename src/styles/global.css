@@ -323,6 +323,49 @@ p {
   }
 }
 
+@media (min-width: 768px) {
+  .app-shell {
+    width: 100%;
+    max-width: 1180px;
+  }
+
+  .home-page,
+  .placeholder-page {
+    width: min(calc(100% - 64px), 640px);
+    margin-right: auto;
+    margin-left: auto;
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .bottom-nav {
+    width: min(calc(100% - 64px), 640px);
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-page {
+    width: min(calc(100% - 96px), 840px);
+  }
+
+  .home-main {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(260px, 1fr);
+    align-items: center;
+    gap: 28px;
+  }
+
+  .home-actions {
+    margin-top: 0;
+  }
+
+  .home-tip {
+    margin-top: 27px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
