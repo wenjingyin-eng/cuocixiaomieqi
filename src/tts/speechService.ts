@@ -25,22 +25,23 @@ export function cancelSpeech(engine: SpeechEngine): void {
 }
 
 function normalizeLanguage(language: string): string {
-  return language.toLowerCase().replace('_', '-')
+  return language.trim().toLowerCase().replaceAll('_', '-')
+}
+
+export function getVoiceId(voice: SpeechSynthesisVoice): string {
+  return voice.voiceURI || `${voice.name}:${normalizeLanguage(voice.lang)}`
 }
 
 export function getChineseVoices(
   voices: readonly SpeechSynthesisVoice[],
   maxVoices = 3,
 ): SpeechSynthesisVoice[] {
-  const exactChinese = voices.filter((voice) => normalizeLanguage(voice.lang).startsWith('zh-cn'))
-  const otherChinese = voices.filter((voice) => (
-    normalizeLanguage(voice.lang).startsWith('zh-') && !exactChinese.includes(voice)
-  ))
+  const exactChinese = voices.filter((voice) => normalizeLanguage(voice.lang) === 'zh-cn')
   const seen = new Set<string>()
 
-  return [...exactChinese, ...otherChinese]
+  return exactChinese
     .filter((voice) => {
-      const id = voice.voiceURI || `${voice.name}:${voice.lang}`
+      const id = getVoiceId(voice)
       if (seen.has(id)) return false
       seen.add(id)
       return true
@@ -52,8 +53,13 @@ export function resolveVoice(
   voices: readonly SpeechSynthesisVoice[],
   preferredVoiceId?: string,
 ): SpeechSynthesisVoice | null {
-  if (voices.length === 0) return null
-  return voices.find((voice) => voice.voiceURI === preferredVoiceId) ?? voices[0]
+  const chineseVoices = getChineseVoices(voices, voices.length)
+  if (chineseVoices.length === 0) return null
+  const preferredVoice = chineseVoices.find((voice) => getVoiceId(voice) === preferredVoiceId)
+  if (preferredVoice) return preferredVoice
+
+  return chineseVoices.find((voice) => voice.default)
+    ?? chineseVoices[0]
 }
 
 export function queueSpeech({

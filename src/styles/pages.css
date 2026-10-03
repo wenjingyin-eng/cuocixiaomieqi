@@ -329,23 +329,27 @@ button.character-chip {
 
 .voice-card {
   display: flex;
-  height: 56px;
+  min-height: 56px;
   margin: 18px 0 20px;
-  padding: 0 17px;
+  padding: 10px 17px;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   border-radius: 15px;
   box-shadow: none;
 }
 
 .voice-card > span {
+  flex: 0 0 auto;
   color: #51473f;
   font-size: 13px;
 }
 
 .voice-options {
   display: flex;
-  gap: 3px;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .voice-options__empty {
@@ -354,21 +358,28 @@ button.character-chip {
   line-height: 30px;
 }
 
-.voice-options button {
-  min-width: 50px;
-  height: 30px;
-  padding: 0 8px;
+.voice-options select {
+  width: min(100%, 220px);
+  height: 36px;
+  margin-left: auto;
+  padding: 0 22px 0 6px;
   cursor: pointer;
-  color: #8e7b6d;
-  background: transparent;
+  overflow: hidden;
+  color: #6d5b50;
+  background-color: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
+  outline: none;
   font-size: 13px;
+  text-align: right;
+  text-align-last: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.voice-options button.is-active {
-  color: #bf5800;
-  background: #f4efe3;
+.voice-options select:focus {
+  outline: 2px solid rgba(255, 117, 0, 0.22);
+  outline-offset: 2px;
 }
 
 /* Review */
@@ -932,7 +943,7 @@ button.word-row__status {
   }
 
   .rules-card label {
-    grid-template-columns: 150px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 10px;
   }
 
@@ -940,9 +951,9 @@ button.word-row__status {
     padding: 0 12px;
   }
 
-  .voice-options button {
-    min-width: 47px;
-    padding: 0 6px;
+  .voice-options select {
+    padding-right: 24px;
+    padding-left: 9px;
   }
 }
 
