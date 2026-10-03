@@ -898,6 +898,81 @@ button.word-row__status {
   font-weight: 500;
 }
 
+.tts-diagnostics {
+  margin-top: 32px;
+}
+
+.tts-diagnostics-card {
+  padding: 20px;
+  border-radius: 24px;
+}
+
+.tts-diagnostics h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.tts-diagnostics p {
+  margin: 0;
+  color: #75675e;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.tts-no-voice {
+  color: #c43b32 !important;
+  font-weight: 700;
+}
+
+.tts-all-voices {
+  margin-top: 22px;
+  padding-top: 20px;
+  border-top: 1px solid #e9e1d7;
+}
+
+.tts-voice-record {
+  padding: 14px 0;
+  border-top: 1px solid #eee7df;
+}
+
+.tts-voice-record:first-of-type {
+  border-top: 0;
+}
+
+.tts-voice-record > strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #6b5c53;
+  font-size: 13px;
+}
+
+.tts-voice-fields {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.tts-voice-fields div {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.tts-voice-fields dt {
+  color: #9a887c;
+  font-weight: 700;
+}
+
+.tts-voice-fields dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #53473f;
+}
+
 @media (max-width: 374px) {
   .primary-page,
   .secondary-content {
@@ -932,7 +1007,7 @@ button.word-row__status {
   }
 
   .rules-card label {
-    grid-template-columns: 150px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     column-gap: 10px;
   }
 

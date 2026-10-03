@@ -8,6 +8,8 @@ import {
 import { Button } from '../components/Button'
 import { SurfaceCard } from '../components/SurfaceCard'
 import { validateSettings } from '../domain'
+import { resolveVoice } from '../tts/speechService'
+import { useSpeechSynthesis } from '../tts/useSpeechSynthesis'
 import { getToday } from '../utils/dateClock'
 import type { AppSettings, ReviewIntervals } from '../types/domain'
 
@@ -50,6 +52,7 @@ export function SettingsPage() {
     createBackup,
     restoreBackup,
   } = useAppState()
+  const { allVoices, voices: availableVoices, isReady: voicesReady } = useSpeechSynthesis()
   const importInputRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState<SettingsFormState>(() => createSettingsForm(settings))
   const [message, setMessage] = useState('')
@@ -60,6 +63,7 @@ export function SettingsPage() {
     && draft.eliminationTarget <= 5
     ? draft.eliminationTarget
     : 0
+  const selectedVoice = resolveVoice(availableVoices, settings.preferredVoiceId)
 
   function updateInterval(index: number, value: string): void {
     setForm((current) => {
@@ -213,6 +217,43 @@ export function SettingsPage() {
         <button className="danger-action" type="button" onClick={handleClear}>
           <strong>清空全部数据</strong>
         </button>
+      </section>
+
+      <section className="settings-section tts-diagnostics" aria-labelledby="tts-diagnostics-title">
+        <h2 id="tts-diagnostics-title">TTS 语音诊断（临时）</h2>
+        <SurfaceCard className="tts-diagnostics-card">
+          <div className="tts-selected-voice">
+            <h3>当前实际选中的 voice</h3>
+            {!voicesReady && <p>正在读取设备语音…</p>}
+            {voicesReady && !selectedVoice && <p className="tts-no-voice">当前设备没有合适的中文语音</p>}
+            {selectedVoice && (
+              <dl className="tts-voice-fields">
+                <div><dt>name</dt><dd>{selectedVoice.name}</dd></div>
+                <div><dt>lang</dt><dd>{selectedVoice.lang}</dd></div>
+                <div><dt>voiceURI</dt><dd>{selectedVoice.voiceURI || '（空）'}</dd></div>
+                <div><dt>default</dt><dd>{String(selectedVoice.default)}</dd></div>
+                <div><dt>localService</dt><dd>{String(selectedVoice.localService)}</dd></div>
+              </dl>
+            )}
+          </div>
+
+          <div className="tts-all-voices">
+            <h3>speechSynthesis.getVoices()：{allVoices.length} 个</h3>
+            {voicesReady && allVoices.length === 0 && <p>设备暂未返回任何 voice</p>}
+            {allVoices.map((voice, index) => (
+              <article className="tts-voice-record" key={`${voice.voiceURI}:${index}`}>
+                <strong>Voice {index + 1}</strong>
+                <dl className="tts-voice-fields">
+                  <div><dt>name</dt><dd>{voice.name}</dd></div>
+                  <div><dt>lang</dt><dd>{voice.lang}</dd></div>
+                  <div><dt>voiceURI</dt><dd>{voice.voiceURI || '（空）'}</dd></div>
+                  <div><dt>default</dt><dd>{String(voice.default)}</dd></div>
+                  <div><dt>localService</dt><dd>{String(voice.localService)}</dd></div>
+                </dl>
+              </article>
+            ))}
+          </div>
+        </SurfaceCard>
       </section>
 
     </div>

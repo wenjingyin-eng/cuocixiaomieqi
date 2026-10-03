@@ -52,8 +52,9 @@ export function resolveVoice(
   voices: readonly SpeechSynthesisVoice[],
   preferredVoiceId?: string,
 ): SpeechSynthesisVoice | null {
-  if (voices.length === 0) return null
-  return voices.find((voice) => voice.voiceURI === preferredVoiceId) ?? voices[0]
+  const chineseVoices = getChineseVoices(voices, voices.length)
+  if (chineseVoices.length === 0) return null
+  return chineseVoices.find((voice) => voice.voiceURI === preferredVoiceId) ?? chineseVoices[0]
 }
 
 export function queueSpeech({

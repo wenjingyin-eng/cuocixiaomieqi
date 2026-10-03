@@ -33,6 +33,19 @@ describe('speechService', () => {
     expect(resolveVoice([], 'missing')).toBeNull()
   })
 
+  it('最终选择只接受中文声音，并按 zh-CN、其他 zh-* 的顺序回退', () => {
+    const voices = [
+      voice('english-default', 'en-US'),
+      voice('taiwan', 'zh-TW'),
+      voice('mandarin', 'zh-CN'),
+    ]
+
+    expect(resolveVoice(voices, 'english-default')?.voiceURI).toBe('mandarin')
+    expect(resolveVoice(voices, 'missing')?.voiceURI).toBe('mandarin')
+    expect(resolveVoice([voice('english-only', 'en-GB')])).toBeNull()
+    expect(resolveVoice([voice('cantonese', 'zh-HK')])?.voiceURI).toBe('cantonese')
+  })
+
   it('连续播放时在每遍之间留出 1 秒间隔', () => {
     const spoken: SpeechSynthesisUtterance[] = []
     const engine = {

@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cancelSpeech, getChineseVoices, queueSpeech, resolveVoice } from './speechService'
 
 const UNAVAILABLE_MESSAGE = '当前设备暂时无法播放语音'
+const NO_CHINESE_VOICE_MESSAGE = '当前设备没有合适的中文语音'
 
 type SpeechSynthesisState = {
+  allVoices: SpeechSynthesisVoice[]
   voices: SpeechSynthesisVoice[]
   isReady: boolean
   error: string | null
@@ -29,9 +31,11 @@ function getEnvironment(): {
 
 export function useSpeechSynthesis(): SpeechSynthesisState {
   const environment = useMemo(() => getEnvironment(), [])
-  const initialVoices = useMemo(() => (
-    environment.engine ? getChineseVoices(environment.engine.getVoices()) : []
+  const initialAllVoices = useMemo(() => (
+    environment.engine ? environment.engine.getVoices() : []
   ), [environment])
+  const initialVoices = useMemo(() => getChineseVoices(initialAllVoices), [initialAllVoices])
+  const [allVoices, setAllVoices] = useState<SpeechSynthesisVoice[]>(initialAllVoices)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(initialVoices)
   const [isReady, setIsReady] = useState(initialVoices.length > 0 || environment.engine === null)
   const [error, setError] = useState<string | null>(
@@ -43,10 +47,12 @@ export function useSpeechSynthesis(): SpeechSynthesisState {
     if (!engine) return
 
     const refreshVoices = () => {
-      const nextVoices = getChineseVoices(engine.getVoices())
+      const nextAllVoices = engine.getVoices()
+      const nextVoices = getChineseVoices(nextAllVoices)
+      setAllVoices(nextAllVoices)
       setVoices(nextVoices)
       setIsReady(true)
-      setError(nextVoices.length === 0 ? UNAVAILABLE_MESSAGE : null)
+      setError(nextVoices.length === 0 ? NO_CHINESE_VOICE_MESSAGE : null)
     }
 
     engine.addEventListener('voiceschanged', refreshVoices)
@@ -62,7 +68,7 @@ export function useSpeechSynthesis(): SpeechSynthesisState {
     const { engine, createUtterance } = environment
     const voice = resolveVoice(voices, voiceId)
     if (!engine || !createUtterance || !voice) {
-      setError(UNAVAILABLE_MESSAGE)
+      setError(engine && createUtterance ? NO_CHINESE_VOICE_MESSAGE : UNAVAILABLE_MESSAGE)
       return false
     }
 
@@ -87,5 +93,5 @@ export function useSpeechSynthesis(): SpeechSynthesisState {
     if (environment.engine) cancelSpeech(environment.engine)
   }, [environment])
 
-  return { voices, isReady, error, speak, cancel }
+  return { allVoices, voices, isReady, error, speak, cancel }
 }
