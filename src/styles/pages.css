@@ -329,23 +329,27 @@ button.character-chip {
 
 .voice-card {
   display: flex;
-  height: 56px;
+  min-height: 56px;
   margin: 18px 0 20px;
-  padding: 0 17px;
+  padding: 10px 17px;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   border-radius: 15px;
   box-shadow: none;
 }
 
 .voice-card > span {
+  flex: 0 0 auto;
   color: #51473f;
   font-size: 13px;
 }
 
 .voice-options {
   display: flex;
-  gap: 3px;
+  min-width: 0;
+  flex: 1;
+  justify-content: flex-end;
 }
 
 .voice-options__empty {
@@ -354,21 +358,28 @@ button.character-chip {
   line-height: 30px;
 }
 
-.voice-options button {
-  min-width: 50px;
-  height: 30px;
-  padding: 0 8px;
+.voice-options select {
+  width: min(100%, 220px);
+  height: 36px;
+  margin-left: auto;
+  padding: 0 22px 0 6px;
   cursor: pointer;
-  color: #8e7b6d;
-  background: transparent;
+  overflow: hidden;
+  color: #6d5b50;
+  background-color: transparent;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0;
+  outline: none;
   font-size: 13px;
+  text-align: right;
+  text-align-last: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.voice-options button.is-active {
-  color: #bf5800;
-  background: #f4efe3;
+.voice-options select:focus {
+  outline: 2px solid rgba(255, 117, 0, 0.22);
+  outline-offset: 2px;
 }
 
 /* Review */
@@ -898,81 +909,6 @@ button.word-row__status {
   font-weight: 500;
 }
 
-.tts-diagnostics {
-  margin-top: 32px;
-}
-
-.tts-diagnostics-card {
-  padding: 20px;
-  border-radius: 24px;
-}
-
-.tts-diagnostics h3 {
-  margin: 0 0 12px;
-  font-size: 15px;
-  line-height: 22px;
-}
-
-.tts-diagnostics p {
-  margin: 0;
-  color: #75675e;
-  font-size: 13px;
-  line-height: 20px;
-}
-
-.tts-no-voice {
-  color: #c43b32 !important;
-  font-weight: 700;
-}
-
-.tts-all-voices {
-  margin-top: 22px;
-  padding-top: 20px;
-  border-top: 1px solid #e9e1d7;
-}
-
-.tts-voice-record {
-  padding: 14px 0;
-  border-top: 1px solid #eee7df;
-}
-
-.tts-voice-record:first-of-type {
-  border-top: 0;
-}
-
-.tts-voice-record > strong {
-  display: block;
-  margin-bottom: 8px;
-  color: #6b5c53;
-  font-size: 13px;
-}
-
-.tts-voice-fields {
-  display: grid;
-  gap: 6px;
-  margin: 0;
-}
-
-.tts-voice-fields div {
-  display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
-  gap: 8px;
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.tts-voice-fields dt {
-  color: #9a887c;
-  font-weight: 700;
-}
-
-.tts-voice-fields dd {
-  min-width: 0;
-  margin: 0;
-  overflow-wrap: anywhere;
-  color: #53473f;
-}
-
 @media (max-width: 374px) {
   .primary-page,
   .secondary-content {
@@ -1015,9 +951,9 @@ button.word-row__status {
     padding: 0 12px;
   }
 
-  .voice-options button {
-    min-width: 47px;
-    padding: 0 6px;
+  .voice-options select {
+    padding-right: 24px;
+    padding-left: 9px;
   }
 }
 

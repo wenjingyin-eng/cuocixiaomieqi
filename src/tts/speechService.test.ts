@@ -1,49 +1,67 @@
 import { describe, expect, it, vi } from 'vitest'
-import { getChineseVoices, queueSpeech, resolveVoice } from './speechService'
+import { getChineseVoices, getVoiceId, queueSpeech, resolveVoice } from './speechService'
 
-function voice(id: string, lang: string): SpeechSynthesisVoice {
+function voice(id: string, lang: string, isDefault = false, voiceUri = id): SpeechSynthesisVoice {
   return {
-    default: false,
+    default: isDefault,
     lang,
     localService: true,
     name: id,
-    voiceURI: id,
+    voiceURI: voiceUri,
   }
 }
 
 describe('speechService', () => {
-  it('优先选择 zh-CN，再使用其他中文声音，并限制为三个', () => {
+  it('候选列表只保留 zh-CN，并限制为三个', () => {
     const voices = [
       voice('english', 'en-US'),
       voice('cantonese', 'zh-HK'),
       voice('mandarin-1', 'zh-CN'),
       voice('mandarin-2', 'zh_CN'),
+      voice('simplified', 'zh-Hans-CN'),
       voice('taiwan', 'zh-TW'),
     ]
 
     expect(getChineseVoices(voices).map((item) => item.voiceURI))
-      .toEqual(['mandarin-1', 'mandarin-2', 'cantonese'])
+      .toEqual(['mandarin-1', 'mandarin-2'])
   })
 
-  it('优先恢复用户选择的声音，否则回退到第一个中文声音', () => {
-    const voices = [voice('first', 'zh-CN'), voice('second', 'zh-CN')]
+  it('优先恢复当前设备仍存在的中文用户选择', () => {
+    const voices = [
+      voice('mandarin-default', 'zh-CN', true),
+      voice('user-selected', 'zh-CN'),
+    ]
 
-    expect(resolveVoice(voices, 'second')?.voiceURI).toBe('second')
-    expect(resolveVoice(voices, 'missing')?.voiceURI).toBe('first')
+    expect(resolveVoice(voices, 'user-selected')?.voiceURI).toBe('user-selected')
     expect(resolveVoice([], 'missing')).toBeNull()
   })
 
-  it('最终选择只接受中文声音，并按 zh-CN、其他 zh-* 的顺序回退', () => {
+  it('失效偏好重新从当前 zh-CN voice 选择，不按原数组位置或其他语言回退', () => {
     const voices = [
       voice('english-default', 'en-US'),
-      voice('taiwan', 'zh-TW'),
+      voice('taiwan-default', 'zh-TW', true),
       voice('mandarin', 'zh-CN'),
     ]
 
     expect(resolveVoice(voices, 'english-default')?.voiceURI).toBe('mandarin')
     expect(resolveVoice(voices, 'missing')?.voiceURI).toBe('mandarin')
     expect(resolveVoice([voice('english-only', 'en-GB')])).toBeNull()
-    expect(resolveVoice([voice('cantonese', 'zh-HK')])?.voiceURI).toBe('cantonese')
+    expect(resolveVoice([voice('cantonese', 'zh-HK')])).toBeNull()
+  })
+
+  it('只在 zh-CN 候选内优先 default voice', () => {
+    expect(resolveVoice([
+      voice('english', 'en-US', true),
+      voice('taiwan', 'zh-TW'),
+      voice('mandarin', 'zh-CN'),
+      voice('mandarin-default', 'zh-CN', true),
+    ])?.voiceURI).toBe('mandarin-default')
+  })
+
+  it('voiceURI 为空时使用名称和语言生成设备内稳定标识，不依赖数组下标', () => {
+    const selectedVoice = voice('系统普通话', 'zh-CN', false, '')
+    expect(getVoiceId(selectedVoice)).toBe('系统普通话:zh-cn')
+    expect(resolveVoice([selectedVoice], '系统普通话:zh-cn')).toBe(selectedVoice)
   })
 
   it('连续播放时在每遍之间留出 1 秒间隔', () => {

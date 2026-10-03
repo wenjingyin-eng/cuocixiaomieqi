@@ -5,7 +5,7 @@ import { useAppState } from '../app/AppState'
 import { Button } from '../components/Button'
 import { PageHeader } from '../components/PageHeader'
 import { SurfaceCard } from '../components/SurfaceCard'
-import { resolveVoice } from '../tts/speechService'
+import { getVoiceId, resolveVoice } from '../tts/speechService'
 import { useSpeechSynthesis } from '../tts/useSpeechSynthesis'
 
 export function DictationPage() {
@@ -29,7 +29,7 @@ export function DictationPage() {
     if (!currentSession || !currentTerm || !selectedVoice || !isReady) return
     const termKey = `${currentSession.id}:${currentDictationIndex}`
     if (autoPlayedTermRef.current === termKey) return
-    if (speak(currentTerm.text, 3, selectedVoice.voiceURI)) {
+    if (speak(currentTerm.text, 3, getVoiceId(selectedVoice))) {
       autoPlayedTermRef.current = termKey
     }
     return () => {
@@ -55,7 +55,13 @@ export function DictationPage() {
 
   function handlePlay(): void {
     if (!currentTerm || !selectedVoice) return
-    speak(currentTerm.text, 3, selectedVoice.voiceURI)
+    speak(currentTerm.text, 3, getVoiceId(selectedVoice))
+  }
+
+  function handleVoiceSelect(voice: SpeechSynthesisVoice): void {
+    const voiceId = getVoiceId(voice)
+    saveSettings({ ...settings, preferredVoiceId: voiceId })
+    if (currentTerm) speak(currentTerm.text, 1, voiceId)
   }
 
   if (!currentSession) {
@@ -102,19 +108,25 @@ export function DictationPage() {
           <span>发音人</span>
           <div className="voice-options" aria-label="发音人">
             {!isReady && <span className="voice-options__empty">正在加载…</span>}
-            {isReady && voices.length === 0 && <span className="voice-options__empty">暂无中文声音</span>}
-            {voices.map((voice, index) => (
-              <button
-                className={selectedVoice?.voiceURI === voice.voiceURI ? 'is-active' : ''}
-                key={voice.voiceURI}
-                type="button"
-                title={`${voice.name}（${voice.lang}）`}
-                aria-label={`选择声音 ${index + 1}：${voice.name}`}
-                onClick={() => saveSettings({ ...settings, preferredVoiceId: voice.voiceURI })}
+            {isReady && voices.length === 0 && (
+              <span className="voice-options__empty">当前设备没有可用的中文语音</span>
+            )}
+            {isReady && voices.length > 0 && selectedVoice && (
+              <select
+                value={getVoiceId(selectedVoice)}
+                aria-label="选择并试听发音人"
+                onChange={(event) => {
+                  const voice = voices.find((item) => getVoiceId(item) === event.target.value)
+                  if (voice) handleVoiceSelect(voice)
+                }}
               >
-                声音{index + 1}
-              </button>
-            ))}
+                {voices.map((voice) => (
+                  <option key={getVoiceId(voice)} value={getVoiceId(voice)}>
+                    {voice.name}（{voice.lang}）
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </SurfaceCard>
 

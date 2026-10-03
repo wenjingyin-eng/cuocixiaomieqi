@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cancelSpeech, getChineseVoices, queueSpeech, resolveVoice } from './speechService'
 
 const UNAVAILABLE_MESSAGE = '当前设备暂时无法播放语音'
-const NO_CHINESE_VOICE_MESSAGE = '当前设备没有合适的中文语音'
+const NO_CHINESE_VOICE_MESSAGE = '当前设备没有可用的中文语音'
+const VOICE_LOAD_TIMEOUT_MS = 2500
+const VOICE_RETRY_DELAYS_MS = [250, 1000]
 
 type SpeechSynthesisState = {
-  allVoices: SpeechSynthesisVoice[]
   voices: SpeechSynthesisVoice[]
   isReady: boolean
   error: string | null
@@ -34,32 +35,45 @@ export function useSpeechSynthesis(): SpeechSynthesisState {
   const initialAllVoices = useMemo(() => (
     environment.engine ? environment.engine.getVoices() : []
   ), [environment])
-  const initialVoices = useMemo(() => getChineseVoices(initialAllVoices), [initialAllVoices])
-  const [allVoices, setAllVoices] = useState<SpeechSynthesisVoice[]>(initialAllVoices)
+  const initialVoices = useMemo(() => (
+    getChineseVoices(initialAllVoices, initialAllVoices.length)
+  ), [initialAllVoices])
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>(initialVoices)
-  const [isReady, setIsReady] = useState(initialVoices.length > 0 || environment.engine === null)
+  const [isReady, setIsReady] = useState(initialAllVoices.length > 0 || environment.engine === null)
   const [error, setError] = useState<string | null>(
-    environment.engine === null ? UNAVAILABLE_MESSAGE : null,
+    environment.engine === null
+      ? UNAVAILABLE_MESSAGE
+      : initialAllVoices.length > 0 && initialVoices.length === 0
+        ? NO_CHINESE_VOICE_MESSAGE
+        : null,
   )
 
   useEffect(() => {
     const { engine } = environment
     if (!engine) return
 
-    const refreshVoices = () => {
+    const refreshVoices = (allowEmpty = false) => {
       const nextAllVoices = engine.getVoices()
-      const nextVoices = getChineseVoices(nextAllVoices)
-      setAllVoices(nextAllVoices)
+      const nextVoices = getChineseVoices(nextAllVoices, nextAllVoices.length)
       setVoices(nextVoices)
-      setIsReady(true)
-      setError(nextVoices.length === 0 ? NO_CHINESE_VOICE_MESSAGE : null)
+      const hasFinishedLoading = nextAllVoices.length > 0 || allowEmpty
+      setIsReady(hasFinishedLoading)
+      setError(
+        hasFinishedLoading && nextVoices.length === 0 ? NO_CHINESE_VOICE_MESSAGE : null,
+      )
     }
 
-    engine.addEventListener('voiceschanged', refreshVoices)
-    const fallbackTimer = window.setTimeout(refreshVoices, 500)
+    const handleVoicesChanged = () => refreshVoices()
+    engine.addEventListener('voiceschanged', handleVoicesChanged)
+    refreshVoices()
+    const retryTimers = VOICE_RETRY_DELAYS_MS.map((delay) => (
+      window.setTimeout(() => refreshVoices(), delay)
+    ))
+    const timeoutTimer = window.setTimeout(() => refreshVoices(true), VOICE_LOAD_TIMEOUT_MS)
     return () => {
-      window.clearTimeout(fallbackTimer)
-      engine.removeEventListener('voiceschanged', refreshVoices)
+      retryTimers.forEach((timer) => window.clearTimeout(timer))
+      window.clearTimeout(timeoutTimer)
+      engine.removeEventListener('voiceschanged', handleVoicesChanged)
       cancelSpeech(engine)
     }
   }, [environment])
@@ -93,5 +107,5 @@ export function useSpeechSynthesis(): SpeechSynthesisState {
     if (environment.engine) cancelSpeech(environment.engine)
   }, [environment])
 
-  return { allVoices, voices, isReady, error, speak, cancel }
+  return { voices, isReady, error, speak, cancel }
 }
